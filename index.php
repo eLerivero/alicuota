@@ -23,8 +23,7 @@ if ($method === 'POST') {
             echo json_encode([
                 "status" => "error",
                 "code" => 401,
-                "message" => "Credenciales no proporcionadas.",
-                "details" => "Por favor, incluya las credenciales en la cabecera de autorización."
+                "message" => "Credenciales no proporcionadas."
             ]);
             exit;
         }
@@ -38,37 +37,44 @@ if ($method === 'POST') {
             echo json_encode([
                 "status" => "error",
                 "code" => 401,
-                "message" => "Credenciales inválidas.",
-                "details" => "Asegúrese de que el nombre de usuario y la contraseña sean correctos."
+                "message" => "Credenciales inválidas."
             ]);
             exit;
         }
         
         // Si la autenticación es correcta, procesar el cálculo
-        $result = calcularAlicuota($input);
-        echo json_encode([
-            "status" => "success",
-            "code" => 200,
-            "data" => $result
-        ]);
-        exit;
+        try {
+            $result = calcularAlicuota($input['uab'], $input['bandera'], $input['BCV']);
+            $resultadoPilotaje = calcularPilotaje($input['uab'], $input['bandera'], $input['maniobras'] ?? 0);
+            $resultadoLanchaje = calcularLanchaje($input['uab'], $input['bandera'], $input['maniobras'] ?? 0);
+
+            // Combina los resultados
+            $resultadoFinal = array_merge($result, $resultadoPilotaje, $resultadoLanchaje);
+
+            // Solo devuelve los resultados
+            echo json_encode($resultadoFinal, JSON_PRETTY_PRINT);
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode([
+                "status" => "error",
+                "code" => 500,
+                "message" => "Error en el procesamiento de la solicitud."
+            ]);
+        }
     } else {
         http_response_code(400);
         echo json_encode([
             "status" => "error",
             "code" => 400,
-            "message" => "Datos de cálculo incompletos.",
-            "details" => "Asegúrese de que los campos 'uab', 'bandera' y 'BCV' estén presentes."
+            "message" => "Datos de cálculo incompletos."
         ]);
-        exit;
     }
 } else {
     http_response_code(405);
     echo json_encode([
         "status" => "error",
         "code" => 405,
-        "message" => "Método no permitido.",
-        "details" => "Este endpoint solo acepta solicitudes POST."
+        "message" => "Método no permitido."
     ]);
 }
 ?>
